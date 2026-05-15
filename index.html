@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SDAT Property Lookup</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --gold: #C8972A; --gold-light: #E8B84B;
+      --navy: #0D1F3C; --navy-mid: #162c52;
+      --cream: #F5F0E8; --cream-dark: #EAE3D2;
+      --text: #1a1a1a; --muted: #6b6b6b;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+    header { background: var(--navy); padding: 0 2rem; display: flex; align-items: center; gap: 1rem; height: 64px; border-bottom: 3px solid var(--gold); }
+    .md-flag { width: 36px; height: 36px; flex-shrink: 0; border-radius: 3px; overflow: hidden; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+    .md-flag .q1 { background: #000; } .md-flag .q2 { background: #FFD700; }
+    .md-flag .q3 { background: #FFD700; } .md-flag .q4 { background: #000; }
+    header h1 { font-family: 'DM Serif Display', serif; color: #fff; font-size: 1.15rem; letter-spacing: 0.02em; }
+    header span { color: var(--gold-light); font-size: 0.8rem; font-weight: 500; margin-left: auto; opacity: 0.8; }
+
+    main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+
+    .card { background: #fff; border: 1px solid var(--cream-dark); border-radius: 12px; box-shadow: 0 4px 40px rgba(13,31,60,0.10); max-width: 580px; width: 100%; overflow: hidden; }
+
+    .card-top { background: var(--navy); padding: 2rem 2rem 1.5rem; position: relative; overflow: hidden; }
+    .card-top::before { content:''; position:absolute; top:-30px; right:-30px; width:140px; height:140px; border-radius:50%; background:rgba(200,151,42,0.12); }
+    .card-top h2 { font-family: 'DM Serif Display', serif; color: #fff; font-size: 1.5rem; margin-bottom: 0.3rem; position: relative; }
+    .card-top p { color: rgba(255,255,255,0.6); font-size: 0.85rem; position: relative; }
+
+    .card-body { padding: 1.75rem 2rem; }
+
+    #status-area { display: flex; flex-direction: column; gap: 0.85rem; }
+
+    .status-row { display: flex; align-items: center; gap: 0.85rem; padding: 0.85rem 1rem; border-radius: 8px; background: var(--cream); border: 1px solid var(--cream-dark); transition: all 0.3s ease; }
+    .status-row.active { background: #EFF6FF; border-color: #BFDBFE; }
+    .status-row.done   { background: #F0FDF4; border-color: #BBF7D0; }
+    .status-row.error  { background: #FEF2F2; border-color: #FECACA; }
+    .status-row.warn   { background: #FFFBEB; border-color: #FDE68A; }
+
+    .status-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; background: var(--cream-dark); transition: all 0.3s ease; }
+    .status-row.active .status-icon { background: #DBEAFE; }
+    .status-row.done   .status-icon { background: #DCFCE7; }
+    .status-row.error  .status-icon { background: #FEE2E2; }
+    .status-row.warn   .status-icon { background: #FEF3C7; }
+
+    .spinner { width: 18px; height: 18px; border: 2px solid #93C5FD; border-top-color: #2563EB; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .status-text strong { display: block; font-size: 0.9rem; font-weight: 600; color: var(--text); }
+    .status-text span   { font-size: 0.78rem; color: var(--muted); }
+
+    #prop-summary { display: none; margin-top: 1.1rem; padding: 1rem 1.1rem; background: var(--navy); border-radius: 8px; color: #fff; }
+    #prop-summary h3 { font-family: 'DM Serif Display', serif; font-size: 0.95rem; color: var(--gold-light); margin-bottom: 0.65rem; }
+    .prop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem 1.25rem; }
+    .prop-item .label { color: rgba(255,255,255,0.45); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .prop-item .value { color: #fff; font-weight: 500; font-size: 0.82rem; }
+
+    #open-btn { display: none; width: 100%; margin-top: 1.1rem; padding: 0.8rem; background: var(--gold); color: #fff; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    #open-btn:hover { background: #b8841e; }
+
+    #manual-section { display: none; margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--cream-dark); }
+    #manual-section h3 { font-size: 0.8rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.85rem; }
+    .form-group { margin-bottom: 0.8rem; }
+    label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--muted); margin-bottom: 0.28rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    select, input { width: 100%; padding: 0.58rem 0.85rem; border: 1px solid var(--cream-dark); border-radius: 6px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; background: var(--cream); color: var(--text); outline: none; transition: border-color 0.2s; }
+    select:focus, input:focus { border-color: var(--gold); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .hint { font-size: 0.76rem; color: var(--muted); margin-top: 0.5rem; line-height: 1.5; }
+    .hint strong { color: var(--text); }
+    .btn-navy { width: 100%; margin-top: 0.85rem; padding: 0.72rem; background: var(--navy); color: #fff; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    .btn-navy:hover { background: var(--navy-mid); }
+
+    footer { text-align: center; padding: 1rem; font-size: 0.72rem; color: var(--muted); border-top: 1px solid var(--cream-dark); }
+    footer a { color: var(--gold); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="md-flag">
+    <div class="q1"></div><div class="q2"></div>
+    <div class="q3"></div><div class="q4"></div>
+  </div>
+  <h1>Maryland SDAT Property Lookup</h1>
+  <span>Wicomico County Parcels</span>
+</header>
+
+<main>
+  <div class="card">
+    <div class="card-top">
+      <h2>Opening SDAT&hellip;</h2>
+      <p>Maryland Department of Assessments &amp; Taxation &mdash; Real Property Search</p>
+    </div>
+    <div class="card-body">
+
+      <div id="status-area">
+        <div class="status-row active" id="step-read">
+          <div class="status-icon"><div class="spinner"></div></div>
+          <div class="status-text">
+            <strong>Reading parcel data</strong>
+            <span>Parsing fields from the GIS pop-up link&hellip;</span>
+          </div>
+        </div>
+        <div class="status-row" id="step-build">
+          <div class="status-icon">🔗</div>
+          <div class="status-text">
+            <strong>Building search</strong>
+            <span>Selecting best search method&hellip;</span>
+          </div>
+        </div>
+        <div class="status-row" id="step-open">
+          <div class="status-icon">🚀</div>
+          <div class="status-text">
+            <strong>Opening SDAT</strong>
+            <span>Launching property record in a new tab&hellip;</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="prop-summary">
+        <h3>Parcel Details</h3>
+        <div class="prop-grid" id="prop-grid"></div>
+      </div>
+
+      <button id="open-btn" onclick="openSDAT()">🔍 Open SDAT Search</button>
+
+      <div id="manual-section">
+        <h3>Complete Your Search in SDAT</h3>
+        <div class="form-group">
+          <label>Recommended Search Method</label>
+          <select id="m-method" onchange="updateMethodFields(this.value)">
+            <option value="account">Property Account Identifier</option>
+            <option value="address">Street Address</option>
+            <option value="parcel">Map / Parcel</option>
+          </select>
+        </div>
+        <div id="f-account">
+          <div class="form-group">
+            <label>Account ID — copy this into SDAT</label>
+            <input id="m-acct" type="text" onclick="this.select()" readonly/>
+          </div>
+        </div>
+        <div id="f-address" style="display:none">
+          <div class="form-row">
+            <div class="form-group"><label>Street Number</label><input id="m-stnum" type="text" onclick="this.select()" readonly/></div>
+            <div class="form-group"><label>Street Name</label><input id="m-stnam" type="text" onclick="this.select()" readonly/></div>
+          </div>
+        </div>
+        <div id="f-parcel" style="display:none">
+          <div class="form-row">
+            <div class="form-group"><label>Map</label><input id="m-map" type="text" onclick="this.select()" readonly/></div>
+            <div class="form-group"><label>Parcel</label><input id="m-parcel" type="text" onclick="this.select()" readonly/></div>
+          </div>
+        </div>
+        <p class="hint">
+          In the SDAT window: select <strong>WICOMICO COUNTY</strong>, choose
+          <strong id="method-label">Property Account Identifier</strong>, then paste the value above.
+        </p>
+        <button class="btn-navy" onclick="openSDAT()">↗ Open SDAT Again</button>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<footer>
+  Redirects to <a href="https://sdat.dat.maryland.gov/RealProperty/Pages/default.aspx" target="_blank">Maryland SDAT Real Property Search</a> &mdash;
+  Parcel data from <a href="https://geodata.md.gov/imap/" target="_blank">Maryland iMap</a> via Wicomico County GIS.
+</footer>
+
+<script>
+  const SDAT_URL = 'https://sdat.dat.maryland.gov/RealProperty/Pages/default.aspx';
+
+  // Case-insensitive URL param reader
+  const raw = new URLSearchParams(window.location.search);
+  const get = (...keys) => {
+    for (const k of keys) {
+      for (const attempt of [k, k.toLowerCase(), k.toUpperCase()]) {
+        const v = raw.get(attempt);
+        if (v && v.trim()) return v.trim();
+      }
+    }
+    return null;
+  };
+
+  // Field names match the Parcels1 FeatureServer layer schema exactly
+  const acctid  = get('acctid', 'acct', 'account');
+  const strtnum = get('strtnum', 'stnum');
+  const strtnam = get('strtnam', 'stname');
+  const mapno   = get('map');
+  const parcel  = get('parcel');
+  const owner   = get('ownname1', 'owner');
+  const address = get('address');
+  const jurscode = get('jurscode');
+
+  function setStep(id, state, icon) {
+    const el = document.getElementById(id);
+    el.className = 'status-row ' + state;
+    if (icon !== undefined) el.querySelector('.status-icon').innerHTML = icon;
+  }
+  function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  function showSummary(rows) {
+    document.getElementById('prop-summary').style.display = 'block';
+    document.getElementById('prop-grid').innerHTML = rows
+      .filter(([, v]) => v)
+      .map(([l, v]) => `<div class="prop-item"><div class="label">${l}</div><div class="value">${v}</div></div>`)
+      .join('');
+  }
+
+  function updateMethodFields(method) {
+    document.getElementById('f-account').style.display = method === 'account' ? 'block' : 'none';
+    document.getElementById('f-address').style.display = method === 'address' ? 'block' : 'none';
+    document.getElementById('f-parcel').style.display  = method === 'parcel'  ? 'block' : 'none';
+    const labels = { account: 'Property Account Identifier', address: 'Street Address', parcel: 'Map / Parcel' };
+    document.getElementById('method-label').textContent = labels[method];
+  }
+
+  function openSDAT() {
+    const win = window.open(SDAT_URL, '_blank');
+    if (!win) alert('Please allow popups for this site, then click the button again.');
+  }
+
+  async function run() {
+    await delay(500);
+    const hasAny = acctid || strtnum || strtnam || mapno || parcel;
+
+    if (!hasAny) {
+      setStep('step-read', 'error', '⚠️');
+      document.querySelector('#step-read .status-text span').textContent =
+        'No parcel fields found in the URL — open SDAT and search manually.';
+      document.getElementById('open-btn').style.display = 'block';
+      document.getElementById('manual-section').style.display = 'block';
+      return;
+    }
+
+    setStep('step-read', 'done', '✓');
+    setStep('step-build', 'active', '<div class="spinner"></div>');
+    await delay(400);
+
+    const method = acctid ? 'account' : (strtnum || strtnam) ? 'address' : 'parcel';
+
+    showSummary([
+      ['Owner',      owner],
+      ['Address',    address || [strtnum, strtnam].filter(Boolean).join(' ') || null],
+      ['Account ID', acctid],
+      ['Map',        mapno],
+      ['Parcel',     parcel],
+      ['Juris Code', jurscode],
+    ]);
+
+    if (acctid)  document.getElementById('m-acct').value   = acctid;
+    if (strtnum) document.getElementById('m-stnum').value  = strtnum;
+    if (strtnam) document.getElementById('m-stnam').value  = strtnam;
+    if (mapno)   document.getElementById('m-map').value    = mapno;
+    if (parcel)  document.getElementById('m-parcel').value = parcel;
+    document.getElementById('m-method').value = method;
+    updateMethodFields(method);
+
+    setStep('step-build', 'done', '✓');
+    setStep('step-open', 'active', '<div class="spinner"></div>');
+    await delay(500);
+
+    const win = window.open(SDAT_URL, '_blank');
+
+    if (win) {
+      setStep('step-open', 'done', '✓');
+      document.querySelector('#step-open .status-text strong').textContent = 'SDAT opened!';
+      document.querySelector('#step-open .status-text span').textContent =
+        'New tab opened. Use the details below to complete your search.';
+    } else {
+      setStep('step-open', 'warn', '⚠️');
+      document.querySelector('#step-open .status-text strong').textContent = 'Popup blocked';
+      document.querySelector('#step-open .status-text span').textContent =
+        'Click the button below to open SDAT.';
+      document.getElementById('open-btn').style.display = 'block';
+    }
+    document.getElementById('manual-section').style.display = 'block';
+  }
+
+  run();
+</script>
+</body>
+</html>
