@@ -24,7 +24,7 @@
 
     main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem; }
 
-    .card { background: #fff; border: 1px solid var(--cream-dark); border-radius: 12px; box-shadow: 0 4px 40px rgba(13,31,60,0.10); max-width: 580px; width: 100%; overflow: hidden; }
+    .card { background: #fff; border: 1px solid var(--cream-dark); border-radius: 12px; box-shadow: 0 4px 40px rgba(13,31,60,0.10); max-width: 540px; width: 100%; overflow: hidden; }
 
     .card-top { background: var(--navy); padding: 2rem 2rem 1.5rem; position: relative; overflow: hidden; }
     .card-top::before { content:''; position:absolute; top:-30px; right:-30px; width:140px; height:140px; border-radius:50%; background:rgba(200,151,42,0.12); }
@@ -57,26 +57,15 @@
     #prop-summary h3 { font-family: 'DM Serif Display', serif; font-size: 0.95rem; color: var(--gold-light); margin-bottom: 0.65rem; }
     .prop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem 1.25rem; }
     .prop-item .label { color: rgba(255,255,255,0.45); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; }
-    .prop-item .value { color: #fff; font-weight: 500; font-size: 0.82rem; }
+    .prop-item .value { color: #fff; font-weight: 500; font-size: 0.82rem; word-break: break-all; }
 
-    #open-btn { display: none; width: 100%; margin-top: 1.1rem; padding: 0.8rem; background: var(--gold); color: #fff; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-    #open-btn:hover { background: #b8841e; }
-
-    #manual-section { display: none; margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--cream-dark); }
-    #manual-section h3 { font-size: 0.8rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.85rem; }
-    .form-group { margin-bottom: 0.8rem; }
-    label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--muted); margin-bottom: 0.28rem; text-transform: uppercase; letter-spacing: 0.04em; }
-    select, input { width: 100%; padding: 0.58rem 0.85rem; border: 1px solid var(--cream-dark); border-radius: 6px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; background: var(--cream); color: var(--text); outline: none; transition: border-color 0.2s; }
-    select:focus, input:focus { border-color: var(--gold); }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-    .hint { font-size: 0.76rem; color: var(--muted); margin-top: 0.5rem; line-height: 1.5; }
-    .hint strong { color: var(--text); }
-    .btn-navy { width: 100%; margin-top: 0.85rem; padding: 0.72rem; background: var(--navy); color: #fff; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-    .btn-navy:hover { background: var(--navy-mid); }
+    #fallback { display: none; margin-top: 1.1rem; padding: 1rem; background: var(--cream); border: 1px solid var(--cream-dark); border-radius: 8px; font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+    .btn { width: 100%; margin-top: 0.85rem; padding: 0.75rem; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    .btn-gold { background: var(--gold); color: #fff; }
+    .btn-gold:hover { background: #b8841e; }
 
     footer { text-align: center; padding: 1rem; font-size: 0.72rem; color: var(--muted); border-top: 1px solid var(--cream-dark); }
     footer a { color: var(--gold); text-decoration: none; }
-    footer a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -93,31 +82,38 @@
 <main>
   <div class="card">
     <div class="card-top">
-      <h2>Opening SDAT&hellip;</h2>
+      <h2 id="card-title">Searching SDAT&hellip;</h2>
       <p>Maryland Department of Assessments &amp; Taxation &mdash; Real Property Search</p>
     </div>
     <div class="card-body">
 
       <div id="status-area">
-        <div class="status-row active" id="step-read">
+        <div class="status-row active" id="step-fetch">
           <div class="status-icon"><div class="spinner"></div></div>
           <div class="status-text">
-            <strong>Reading parcel data</strong>
-            <span>Parsing fields from the GIS pop-up link&hellip;</span>
+            <strong>Connecting to SDAT</strong>
+            <span>Fetching a fresh session&hellip;</span>
           </div>
         </div>
-        <div class="status-row" id="step-build">
-          <div class="status-icon">🔗</div>
+        <div class="status-row" id="step-page1">
+          <div class="status-icon">🏛️</div>
           <div class="status-text">
-            <strong>Building search</strong>
-            <span>Selecting best search method&hellip;</span>
+            <strong>Selecting county &amp; search method</strong>
+            <span>Posting Wicomico County + Account Identifier&hellip;</span>
           </div>
         </div>
-        <div class="status-row" id="step-open">
+        <div class="status-row" id="step-page2">
+          <div class="status-icon">🔑</div>
+          <div class="status-text">
+            <strong>Entering parcel data</strong>
+            <span>Submitting district &amp; account ID&hellip;</span>
+          </div>
+        </div>
+        <div class="status-row" id="step-done">
           <div class="status-icon">🚀</div>
           <div class="status-text">
-            <strong>Opening SDAT</strong>
-            <span>Launching property record in a new tab&hellip;</span>
+            <strong>Opening property record</strong>
+            <span>Launching SDAT result page&hellip;</span>
           </div>
         </div>
       </div>
@@ -127,81 +123,55 @@
         <div class="prop-grid" id="prop-grid"></div>
       </div>
 
-      <button id="open-btn" onclick="openSDAT()">🔍 Open SDAT Search</button>
-
-      <div id="manual-section">
-        <h3>Complete Your Search in SDAT</h3>
-        <div class="form-group">
-          <label>Recommended Search Method</label>
-          <select id="m-method" onchange="updateMethodFields(this.value)">
-            <option value="account">Property Account Identifier</option>
-            <option value="address">Street Address</option>
-            <option value="parcel">Map / Parcel</option>
-          </select>
-        </div>
-        <div id="f-account">
-          <div class="form-group">
-            <label>Account ID — copy this into SDAT</label>
-            <input id="m-acct" type="text" onclick="this.select()" readonly/>
-          </div>
-        </div>
-        <div id="f-address" style="display:none">
-          <div class="form-row">
-            <div class="form-group"><label>Street Number</label><input id="m-stnum" type="text" onclick="this.select()" readonly/></div>
-            <div class="form-group"><label>Street Name</label><input id="m-stnam" type="text" onclick="this.select()" readonly/></div>
-          </div>
-        </div>
-        <div id="f-parcel" style="display:none">
-          <div class="form-row">
-            <div class="form-group"><label>Map</label><input id="m-map" type="text" onclick="this.select()" readonly/></div>
-            <div class="form-group"><label>Parcel</label><input id="m-parcel" type="text" onclick="this.select()" readonly/></div>
-          </div>
-        </div>
-        <p class="hint">
-          In the SDAT window: select <strong>WICOMICO COUNTY</strong>, choose
-          <strong id="method-label">Property Account Identifier</strong>, then paste the value above.
-        </p>
-        <button class="btn-navy" onclick="openSDAT()">↗ Open SDAT Again</button>
-      </div>
+      <div id="fallback"></div>
 
     </div>
   </div>
 </main>
 
 <footer>
-  Redirects to <a href="https://sdat.dat.maryland.gov/RealProperty/Pages/default.aspx" target="_blank">Maryland SDAT Real Property Search</a> &mdash;
-  Parcel data from <a href="https://geodata.md.gov/imap/" target="_blank">Maryland iMap</a> via Wicomico County GIS.
+  Data from <a href="https://sdat.dat.maryland.gov/RealProperty/Pages/default.aspx" target="_blank">Maryland SDAT</a>
+  &mdash; Wicomico County GIS / <a href="https://geodata.md.gov/imap/" target="_blank">Maryland iMap</a>
 </footer>
 
 <script>
   const SDAT_URL = 'https://sdat.dat.maryland.gov/RealProperty/Pages/default.aspx';
 
-  // Case-insensitive URL param reader
+  // ── Parse URL params ───────────────────────────────────────────────────────
   const raw = new URLSearchParams(window.location.search);
   const get = (...keys) => {
     for (const k of keys) {
-      for (const attempt of [k, k.toLowerCase(), k.toUpperCase()]) {
-        const v = raw.get(attempt);
-        if (v && v.trim()) return v.trim();
-      }
+      const v = raw.get(k) || raw.get(k.toLowerCase()) || raw.get(k.toUpperCase());
+      if (v && v.trim()) return v.trim();
     }
     return null;
   };
 
-  // Field names match the Parcels1 FeatureServer layer schema exactly
-  const acctid  = get('acctid', 'acct', 'account');
-  const strtnum = get('strtnum', 'stnum');
-  const strtnam = get('strtnam', 'stname');
-  const mapno   = get('map');
-  const parcel  = get('parcel');
-  const owner   = get('ownname1', 'owner');
-  const address = get('address');
-  const jurscode = get('jurscode');
+  // Fields from Parcels1 layer schema
+  const acctid   = get('acctid', 'acct');
+  const dsubcode = get('dsubcode');         // District Subdivision Code e.g. "01A001"
+  const mapno    = get('map');
+  const parcel   = get('parcel');
+  const towncode = get('towncode') || '000';
+  const owner    = get('ownname1', 'owner');
+  const address  = get('address');
+  const strtnum  = get('strtnum');
+  const strtnam  = get('strtnam');
 
+  // Extract district from dsubcode (first 2 chars) or dedicated param
+  // dsubcode format from iMap is typically "01A001" — district is first 2 digits
+  const district = get('district') || (dsubcode ? dsubcode.substring(0, 2) : '');
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
   function setStep(id, state, icon) {
     const el = document.getElementById(id);
     el.className = 'status-row ' + state;
     if (icon !== undefined) el.querySelector('.status-icon').innerHTML = icon;
+  }
+  function setText(id, strong, span) {
+    const el = document.getElementById(id);
+    if (strong !== undefined) el.querySelector('strong').textContent = strong;
+    if (span   !== undefined) el.querySelector('span').textContent   = span;
   }
   function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -213,74 +183,180 @@
       .join('');
   }
 
-  function updateMethodFields(method) {
-    document.getElementById('f-account').style.display = method === 'account' ? 'block' : 'none';
-    document.getElementById('f-address').style.display = method === 'address' ? 'block' : 'none';
-    document.getElementById('f-parcel').style.display  = method === 'parcel'  ? 'block' : 'none';
-    const labels = { account: 'Property Account Identifier', address: 'Street Address', parcel: 'Map / Parcel' };
-    document.getElementById('method-label').textContent = labels[method];
+  function showFallback(msg) {
+    const el = document.getElementById('fallback');
+    el.style.display = 'block';
+    el.innerHTML = msg + `<button class="btn btn-gold" onclick="window.open('${SDAT_URL}','_blank')">Open SDAT Manually</button>`;
   }
 
-  function openSDAT() {
-    const win = window.open(SDAT_URL, '_blank');
-    if (!win) alert('Please allow popups for this site, then click the button again.');
+  function extractHidden(html, name) {
+    const escaped = name.replace(/[$]/g, '\\$');
+    const re = new RegExp(`name="${escaped}"[^>]*value="([^"]*)"`, 'i');
+    const m = html.match(re);
+    return m ? m[1] : null;
   }
 
+  function buildFormBody(fields) {
+    return Object.entries(fields)
+      .map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v ?? ''))
+      .join('&');
+  }
+
+  // ── Main flow ──────────────────────────────────────────────────────────────
   async function run() {
-    await delay(500);
-    const hasAny = acctid || strtnum || strtnam || mapno || parcel;
+    await delay(300);
 
-    if (!hasAny) {
-      setStep('step-read', 'error', '⚠️');
-      document.querySelector('#step-read .status-text span').textContent =
-        'No parcel fields found in the URL — open SDAT and search manually.';
-      document.getElementById('open-btn').style.display = 'block';
-      document.getElementById('manual-section').style.display = 'block';
+    if (!acctid && !mapno && !parcel && !strtnum) {
+      setStep('step-fetch', 'error', '⚠️');
+      setText('step-fetch', 'No parcel data in URL', 'Check your Arcade expression.');
+      showFallback('<p style="margin-bottom:0.5rem"><strong>No parcel fields were passed in the URL.</strong></p>');
       return;
     }
-
-    setStep('step-read', 'done', '✓');
-    setStep('step-build', 'active', '<div class="spinner"></div>');
-    await delay(400);
-
-    const method = acctid ? 'account' : (strtnum || strtnam) ? 'address' : 'parcel';
 
     showSummary([
       ['Owner',      owner],
       ['Address',    address || [strtnum, strtnam].filter(Boolean).join(' ') || null],
       ['Account ID', acctid],
+      ['District',   district],
       ['Map',        mapno],
       ['Parcel',     parcel],
-      ['Juris Code', jurscode],
+      ['Town Code',  towncode],
     ]);
 
-    if (acctid)  document.getElementById('m-acct').value   = acctid;
-    if (strtnum) document.getElementById('m-stnum').value  = strtnum;
-    if (strtnam) document.getElementById('m-stnam').value  = strtnam;
-    if (mapno)   document.getElementById('m-map').value    = mapno;
-    if (parcel)  document.getElementById('m-parcel').value = parcel;
-    document.getElementById('m-method').value = method;
-    updateMethodFields(method);
+    // ── STEP 1: Fetch page 1 for fresh tokens ──────────────────────────────
+    let html1;
+    try {
+      const r = await fetch(SDAT_URL, { credentials: 'omit' });
+      html1 = await r.text();
+    } catch(e) {
+      setStep('step-fetch', 'error', '✗');
+      setText('step-fetch', 'Could not reach SDAT', e.message);
+      showFallback('<p style="margin-bottom:0.5rem"><strong>SDAT could not be reached.</strong></p>');
+      return;
+    }
+    setStep('step-fetch', 'done', '✓');
+    await delay(250);
 
-    setStep('step-build', 'done', '✓');
-    setStep('step-open', 'active', '<div class="spinner"></div>');
-    await delay(500);
+    // ── STEP 2: POST page 1 — county + search method ───────────────────────
+    setStep('step-page1', 'active', '<div class="spinner"></div>');
 
-    const win = window.open(SDAT_URL, '_blank');
+    const vs1  = extractHidden(html1, '__VIEWSTATE');
+    const vsg1 = extractHidden(html1, '__VIEWSTATEGENERATOR');
+    const ev1  = extractHidden(html1, '__EVENTVALIDATION');
+
+    if (!vs1 || !ev1) {
+      setStep('step-page1', 'error', '✗');
+      setText('step-page1', 'Token extraction failed', 'SDAT page structure may have changed.');
+      showFallback('<p style="margin-bottom:0.5rem"><strong>Could not parse SDAT session tokens.</strong></p>');
+      return;
+    }
+
+    let html2;
+    try {
+      const body1 = buildFormBody({
+        '__EVENTTARGET': '',
+        '__EVENTARGUMENT': '',
+        '__LASTFOCUS': '',
+        '__VIEWSTATE': vs1,
+        '__VIEWSTATEGENERATOR': vsg1 || '',
+        '__EVENTVALIDATION': ev1,
+        'ctl00$cphMainContentArea$ucSearchType$hideBanner': 'false',
+        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucSearchType$ddlCounty': '23',
+        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucSearchType$ddlSearchType': '02',
+        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$StartNavigationTemplateContainerID$btnContinue': 'Continue',
+        'disclaimerLanguageSelect': 'English',
+      });
+
+      const r2 = await fetch(SDAT_URL, {
+        method: 'POST',
+        credentials: 'omit',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body1,
+      });
+      html2 = await r2.text();
+    } catch(e) {
+      setStep('step-page1', 'error', '✗');
+      setText('step-page1', 'Page 1 POST failed', e.message);
+      showFallback('<p style="margin-bottom:0.5rem"><strong>Could not submit county selection.</strong></p>');
+      return;
+    }
+    setStep('step-page1', 'done', '✓');
+    await delay(250);
+
+    // ── STEP 3: POST page 2 — district + account ID ────────────────────────
+    setStep('step-page2', 'active', '<div class="spinner"></div>');
+
+    const vs2  = extractHidden(html2, '__VIEWSTATE');
+    const vsg2 = extractHidden(html2, '__VIEWSTATEGENERATOR');
+    const ev2  = extractHidden(html2, '__EVENTVALIDATION');
+
+    if (!vs2 || !ev2) {
+      setStep('step-page2', 'error', '✗');
+      setText('step-page2', 'Page 2 token extraction failed', 'Could not read second page tokens.');
+      showFallback('<p style="margin-bottom:0.5rem"><strong>Could not parse page 2 tokens — SDAT may have changed.</strong></p>');
+      return;
+    }
+
+    // Build a Blob URL from the page 2 POST response HTML and open it
+    // We need to POST page 2 and display the result — we do this by
+    // creating a hidden iframe to get the response HTML, then opening it
+    let html3;
+    try {
+      const body2 = buildFormBody({
+        '__EVENTTARGET': '',
+        '__EVENTARGUMENT': '',
+        '__LASTFOCUS': '',
+        '__VIEWSTATE': vs2,
+        '__VIEWSTATEGENERATOR': vsg2 || '',
+        '__EVENTVALIDATION': ev2,
+        'ctl00$cphMainContentArea$ucSearchType$hideBanner': 'false',
+        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucSearchType$ddlCounty': '23',
+        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucSearchType$ddlSearchType': '02',
+        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucEnterData$txtDistrict': district,
+        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucEnterData$txtAccountIdentifier': acctid || '',
+        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$StepNavigationTemplateContainerID$btnStepNextButton': 'Next',
+        'disclaimerLanguageSelect': 'English',
+      });
+
+      const r3 = await fetch(SDAT_URL, {
+        method: 'POST',
+        credentials: 'omit',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body2,
+      });
+      html3 = await r3.text();
+    } catch(e) {
+      setStep('step-page2', 'error', '✗');
+      setText('step-page2', 'Page 2 POST failed', e.message);
+      showFallback('<p style="margin-bottom:0.5rem"><strong>Could not submit parcel data.</strong></p>');
+      return;
+    }
+
+    setStep('step-page2', 'done', '✓');
+    setStep('step-done', 'active', '<div class="spinner"></div>');
+    await delay(300);
+
+    // ── STEP 4: Open the result in a new tab ───────────────────────────────
+    // Rewrite relative URLs in the response HTML so assets load correctly
+    const base = 'https://sdat.dat.maryland.gov/RealProperty/Pages/';
+    const rewritten = html3
+      .replace(/(<head[^>]*>)/i, `$1<base href="${base}">`)
+      .replace(/action="\.\/default\.aspx"/gi, `action="${SDAT_URL}"`);
+
+    const blob = new Blob([rewritten], { type: 'text/html' });
+    const blobUrl = URL.createObjectURL(blob);
+    const win = window.open(blobUrl, '_blank');
 
     if (win) {
-      setStep('step-open', 'done', '✓');
-      document.querySelector('#step-open .status-text strong').textContent = 'SDAT opened!';
-      document.querySelector('#step-open .status-text span').textContent =
-        'New tab opened. Use the details below to complete your search.';
+      setStep('step-done', 'done', '✓');
+      document.getElementById('card-title').textContent = 'Done!';
+      setText('step-done', 'Property record opened!', 'SDAT has opened in a new tab with your property record.');
     } else {
-      setStep('step-open', 'warn', '⚠️');
-      document.querySelector('#step-open .status-text strong').textContent = 'Popup blocked';
-      document.querySelector('#step-open .status-text span').textContent =
-        'Click the button below to open SDAT.';
-      document.getElementById('open-btn').style.display = 'block';
+      setStep('step-done', 'warn', '⚠️');
+      setText('step-done', 'Popup blocked', 'Click below to open the result.');
+      showFallback('<p style="margin-bottom:0.5rem"><strong>Popup was blocked.</strong> Click below:</p>');
+      document.querySelector('.btn-gold').onclick = () => window.open(blobUrl, '_blank');
     }
-    document.getElementById('manual-section').style.display = 'block';
   }
 
   run();
