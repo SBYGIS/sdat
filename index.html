@@ -23,33 +23,26 @@
     header span { color: var(--gold-light); font-size: 0.8rem; font-weight: 500; margin-left: auto; opacity: 0.8; }
 
     main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem; }
-
     .card { background: #fff; border: 1px solid var(--cream-dark); border-radius: 12px; box-shadow: 0 4px 40px rgba(13,31,60,0.10); max-width: 540px; width: 100%; overflow: hidden; }
-
     .card-top { background: var(--navy); padding: 2rem 2rem 1.5rem; position: relative; overflow: hidden; }
     .card-top::before { content:''; position:absolute; top:-30px; right:-30px; width:140px; height:140px; border-radius:50%; background:rgba(200,151,42,0.12); }
     .card-top h2 { font-family: 'DM Serif Display', serif; color: #fff; font-size: 1.5rem; margin-bottom: 0.3rem; position: relative; }
     .card-top p { color: rgba(255,255,255,0.6); font-size: 0.85rem; position: relative; }
-
     .card-body { padding: 1.75rem 2rem; }
 
     #status-area { display: flex; flex-direction: column; gap: 0.85rem; }
-
     .status-row { display: flex; align-items: center; gap: 0.85rem; padding: 0.85rem 1rem; border-radius: 8px; background: var(--cream); border: 1px solid var(--cream-dark); transition: all 0.3s ease; }
     .status-row.active { background: #EFF6FF; border-color: #BFDBFE; }
     .status-row.done   { background: #F0FDF4; border-color: #BBF7D0; }
     .status-row.error  { background: #FEF2F2; border-color: #FECACA; }
     .status-row.warn   { background: #FFFBEB; border-color: #FDE68A; }
-
     .status-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; background: var(--cream-dark); transition: all 0.3s ease; }
     .status-row.active .status-icon { background: #DBEAFE; }
     .status-row.done   .status-icon { background: #DCFCE7; }
     .status-row.error  .status-icon { background: #FEE2E2; }
     .status-row.warn   .status-icon { background: #FEF3C7; }
-
     .spinner { width: 18px; height: 18px; border: 2px solid #93C5FD; border-top-color: #2563EB; border-radius: 50%; animation: spin 0.7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-
     .status-text strong { display: block; font-size: 0.9rem; font-weight: 600; color: var(--text); }
     .status-text span   { font-size: 0.78rem; color: var(--muted); }
 
@@ -61,15 +54,13 @@
 
     #fallback { display: none; margin-top: 1.1rem; padding: 1rem; background: var(--cream); border: 1px solid var(--cream-dark); border-radius: 8px; font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
     .btn { width: 100%; margin-top: 0.85rem; padding: 0.75rem; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-    .btn-gold { background: var(--gold); color: #fff; }
-    .btn-gold:hover { background: #b8841e; }
+    .btn-gold { background: var(--gold); color: #fff; } .btn-gold:hover { background: #b8841e; }
 
     footer { text-align: center; padding: 1rem; font-size: 0.72rem; color: var(--muted); border-top: 1px solid var(--cream-dark); }
     footer a { color: var(--gold); text-decoration: none; }
   </style>
 </head>
 <body>
-
 <header>
   <div class="md-flag">
     <div class="q1"></div><div class="q2"></div>
@@ -86,45 +77,29 @@
       <p>Maryland Department of Assessments &amp; Taxation &mdash; Real Property Search</p>
     </div>
     <div class="card-body">
-
       <div id="status-area">
         <div class="status-row active" id="step-fetch">
           <div class="status-icon"><div class="spinner"></div></div>
-          <div class="status-text">
-            <strong>Connecting to SDAT</strong>
-            <span>Fetching a fresh session&hellip;</span>
-          </div>
+          <div class="status-text"><strong>Connecting to SDAT</strong><span>Fetching a fresh session&hellip;</span></div>
         </div>
         <div class="status-row" id="step-page1">
           <div class="status-icon">🏛️</div>
-          <div class="status-text">
-            <strong>Selecting county &amp; search method</strong>
-            <span>Posting Wicomico County + Map/Parcel&hellip;</span>
-          </div>
+          <div class="status-text"><strong>Selecting county &amp; search method</strong><span>Posting Wicomico County + Map/Parcel&hellip;</span></div>
         </div>
         <div class="status-row" id="step-page2">
           <div class="status-icon">🗺️</div>
-          <div class="status-text">
-            <strong>Entering map &amp; parcel</strong>
-            <span>Submitting map, parcel, and town code&hellip;</span>
-          </div>
+          <div class="status-text"><strong>Entering map &amp; parcel</strong><span>Submitting map, parcel, and town code&hellip;</span></div>
         </div>
         <div class="status-row" id="step-done">
           <div class="status-icon">🚀</div>
-          <div class="status-text">
-            <strong>Opening property record</strong>
-            <span>Launching SDAT result&hellip;</span>
-          </div>
+          <div class="status-text"><strong>Opening property record</strong><span>Launching SDAT result&hellip;</span></div>
         </div>
       </div>
-
       <div id="prop-summary">
         <h3>Parcel Details</h3>
         <div class="prop-grid" id="prop-grid"></div>
       </div>
-
       <div id="fallback"></div>
-
     </div>
   </div>
 </main>
@@ -135,7 +110,13 @@
 </footer>
 
 <script>
-  const SDAT_URL = 'https://sdat.dat.maryland.gov/RealProperty/Pages/default.aspx';
+  const SDAT_URL  = 'https://sdat.dat.maryland.gov/RealProperty/Pages/default.aspx';
+
+  // CORS proxies to try in order — if one fails we fall through to the next
+  const PROXIES = [
+    url => 'https://corsproxy.io/?' + encodeURIComponent(url),
+    url => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
+  ];
 
   // ── Parse URL params ───────────────────────────────────────────────────────
   const raw = new URLSearchParams(window.location.search);
@@ -147,7 +128,6 @@
     return null;
   };
 
-  // Fields from Parcels1 layer schema
   const mapno    = get('map');
   const parcel   = get('parcel');
   const towncode = get('towncode') || '000';
@@ -156,7 +136,7 @@
   const strtnum  = get('strtnum');
   const strtnam  = get('strtnam');
 
-  // Pad map to 4 chars and parcel to 4 chars as SDAT requires
+  // Pad to required lengths
   const mapPadded    = mapno    ? mapno.padStart(4, '0')    : '';
   const parcelPadded = parcel   ? parcel.padStart(4, '0')   : '';
   const townPadded   = towncode ? towncode.padStart(3, '0') : '000';
@@ -185,8 +165,8 @@
   function showFallback(msg, blobUrl) {
     const el = document.getElementById('fallback');
     el.style.display = 'block';
-    el.innerHTML = `<p style="margin-bottom:0.6rem">${msg}</p>` +
-      `<button class="btn btn-gold" onclick="window.open('${blobUrl || SDAT_URL}','_blank')">
+    el.innerHTML = `<p style="margin-bottom:0.6rem">${msg}</p>
+      <button class="btn btn-gold" onclick="window.open('${blobUrl || SDAT_URL}','_blank')">
         Open SDAT${blobUrl ? ' Result' : ' Manually'}
       </button>`;
   }
@@ -204,6 +184,33 @@
       .join('&');
   }
 
+  // Try each proxy in turn for a GET request
+  async function proxyGet(url) {
+    for (const proxy of PROXIES) {
+      try {
+        const r = await fetch(proxy(url), { credentials: 'omit' });
+        if (r.ok) return await r.text();
+      } catch(e) { /* try next */ }
+    }
+    throw new Error('All proxies failed for GET');
+  }
+
+  // Try each proxy in turn for a POST request
+  async function proxyPost(url, body) {
+    for (const proxy of PROXIES) {
+      try {
+        const r = await fetch(proxy(url), {
+          method: 'POST',
+          credentials: 'omit',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body,
+        });
+        if (r.ok) return await r.text();
+      } catch(e) { /* try next */ }
+    }
+    throw new Error('All proxies failed for POST');
+  }
+
   // ── Main flow ──────────────────────────────────────────────────────────────
   async function run() {
     await delay(300);
@@ -211,7 +218,7 @@
     if (!mapno && !parcel) {
       setStep('step-fetch', 'error', '⚠️');
       setText('step-fetch', 'No map/parcel data in URL', 'Check your Arcade expression.');
-      showFallback('<strong>No map or parcel fields were passed.</strong> Check the pop-up Arcade expression.');
+      showFallback('<strong>No map or parcel fields were passed.</strong>');
       return;
     }
 
@@ -223,21 +230,20 @@
       ['Town Code',  townPadded],
     ]);
 
-    // ── STEP 1: GET page 1 for fresh tokens ───────────────────────────────
+    // ── STEP 1: GET page 1 ─────────────────────────────────────────────────
     let html1;
     try {
-      const r = await fetch(SDAT_URL, { credentials: 'omit' });
-      html1 = await r.text();
+      html1 = await proxyGet(SDAT_URL);
     } catch(e) {
       setStep('step-fetch', 'error', '✗');
-      setText('step-fetch', 'Could not reach SDAT', e.message);
-      showFallback('<strong>SDAT could not be reached.</strong>');
+      setText('step-fetch', 'Could not reach SDAT', 'Proxy unavailable — open manually.');
+      showFallback('<strong>SDAT could not be reached via proxy.</strong> Open it manually and use the parcel details above.');
       return;
     }
     setStep('step-fetch', 'done', '✓');
-    await delay(250);
+    await delay(200);
 
-    // ── STEP 2: POST page 1 — Wicomico + Map/Parcel (search type 03) ──────
+    // ── STEP 2: POST page 1 — county + Map/Parcel ─────────────────────────
     setStep('step-page1', 'active', '<div class="spinner"></div>');
 
     const vs1  = extractHidden(html1, '__VIEWSTATE');
@@ -253,7 +259,7 @@
 
     let html2;
     try {
-      const body1 = buildFormBody({
+      html2 = await proxyPost(SDAT_URL, buildFormBody({
         '__EVENTTARGET': '',
         '__EVENTARGUMENT': '',
         '__LASTFOCUS': '',
@@ -261,20 +267,11 @@
         '__VIEWSTATEGENERATOR': vsg1 || '',
         '__EVENTVALIDATION': ev1,
         'ctl00$cphMainContentArea$ucSearchType$hideBanner': 'false',
-        // Wicomico County = 23, Map/Parcel = 03
         'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucSearchType$ddlCounty': '23',
         'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucSearchType$ddlSearchType': '03',
         'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$StartNavigationTemplateContainerID$btnContinue': 'Continue',
         'disclaimerLanguageSelect': 'English',
-      });
-
-      const r2 = await fetch(SDAT_URL, {
-        method: 'POST',
-        credentials: 'omit',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body1,
-      });
-      html2 = await r2.text();
+      }));
     } catch(e) {
       setStep('step-page1', 'error', '✗');
       setText('step-page1', 'County selection POST failed', e.message);
@@ -282,9 +279,9 @@
       return;
     }
     setStep('step-page1', 'done', '✓');
-    await delay(250);
+    await delay(200);
 
-    // ── STEP 3: POST page 2 — Map, Parcel, Town Code ──────────────────────
+    // ── STEP 3: POST page 2 — map, parcel, town code ──────────────────────
     setStep('step-page2', 'active', '<div class="spinner"></div>');
 
     const vs2  = extractHidden(html2, '__VIEWSTATE');
@@ -293,14 +290,14 @@
 
     if (!vs2 || !ev2) {
       setStep('step-page2', 'error', '✗');
-      setText('step-page2', 'Page 2 token extraction failed', 'Could not read second page tokens.');
+      setText('step-page2', 'Page 2 token extraction failed', 'Could not read second-page tokens.');
       showFallback('<strong>Could not parse page 2 tokens.</strong>');
       return;
     }
 
     let html3;
     try {
-      const body2 = buildFormBody({
+      html3 = await proxyPost(SDAT_URL, buildFormBody({
         '__EVENTTARGET': '',
         '__EVENTARGUMENT': '',
         '__LASTFOCUS': '',
@@ -310,21 +307,12 @@
         'ctl00$cphMainContentArea$ucSearchType$hideBanner': 'false',
         'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucSearchType$ddlCounty': '23',
         'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucSearchType$ddlSearchType': '03',
-        // Map/Parcel/TownCode fields from the layer
         'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucEnterData$txtMap': mapPadded,
         'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucEnterData$txtParcel': parcelPadded,
         'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucEnterData$txtTownCode': townPadded,
         'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$StepNavigationTemplateContainerID$btnStepNextButton': 'Next',
         'disclaimerLanguageSelect': 'English',
-      });
-
-      const r3 = await fetch(SDAT_URL, {
-        method: 'POST',
-        credentials: 'omit',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body2,
-      });
-      html3 = await r3.text();
+      }));
     } catch(e) {
       setStep('step-page2', 'error', '✗');
       setText('step-page2', 'Map/Parcel POST failed', e.message);
@@ -334,16 +322,14 @@
 
     setStep('step-page2', 'done', '✓');
     setStep('step-done', 'active', '<div class="spinner"></div>');
-    await delay(300);
+    await delay(250);
 
-    // ── STEP 4: Open result in new tab as Blob URL ─────────────────────────
-    // Rewrite relative paths so SDAT assets (CSS, JS, images) load correctly
-    const baseTag = `<base href="https://sdat.dat.maryland.gov/RealProperty/Pages/">`;
+    // ── STEP 4: Render result in new tab ───────────────────────────────────
+    const baseTag  = `<base href="https://sdat.dat.maryland.gov/RealProperty/Pages/">`;
     const rewritten = html3.replace(/(<head[^>]*>)/i, `$1${baseTag}`);
-
-    const blob    = new Blob([rewritten], { type: 'text/html' });
-    const blobUrl = URL.createObjectURL(blob);
-    const win     = window.open(blobUrl, '_blank');
+    const blob      = new Blob([rewritten], { type: 'text/html' });
+    const blobUrl   = URL.createObjectURL(blob);
+    const win       = window.open(blobUrl, '_blank');
 
     if (win) {
       setStep('step-done', 'done', '✓');
