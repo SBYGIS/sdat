@@ -99,21 +99,21 @@
           <div class="status-icon">🏛️</div>
           <div class="status-text">
             <strong>Selecting county &amp; search method</strong>
-            <span>Posting Wicomico County + Account Identifier&hellip;</span>
+            <span>Posting Wicomico County + Map/Parcel&hellip;</span>
           </div>
         </div>
         <div class="status-row" id="step-page2">
-          <div class="status-icon">🔑</div>
+          <div class="status-icon">🗺️</div>
           <div class="status-text">
-            <strong>Entering parcel data</strong>
-            <span>Submitting district &amp; account ID&hellip;</span>
+            <strong>Entering map &amp; parcel</strong>
+            <span>Submitting map, parcel, and town code&hellip;</span>
           </div>
         </div>
         <div class="status-row" id="step-done">
           <div class="status-icon">🚀</div>
           <div class="status-text">
             <strong>Opening property record</strong>
-            <span>Launching SDAT result page&hellip;</span>
+            <span>Launching SDAT result&hellip;</span>
           </div>
         </div>
       </div>
@@ -148,8 +148,6 @@
   };
 
   // Fields from Parcels1 layer schema
-  const acctid   = get('acctid', 'acct');
-  const dsubcode = get('dsubcode');         // District Subdivision Code e.g. "01A001"
   const mapno    = get('map');
   const parcel   = get('parcel');
   const towncode = get('towncode') || '000';
@@ -158,9 +156,10 @@
   const strtnum  = get('strtnum');
   const strtnam  = get('strtnam');
 
-  // Extract district from dsubcode (first 2 chars) or dedicated param
-  // dsubcode format from iMap is typically "01A001" — district is first 2 digits
-  const district = get('district') || (dsubcode ? dsubcode.substring(0, 2) : '');
+  // Pad map to 4 chars and parcel to 4 chars as SDAT requires
+  const mapPadded    = mapno    ? mapno.padStart(4, '0')    : '';
+  const parcelPadded = parcel   ? parcel.padStart(4, '0')   : '';
+  const townPadded   = towncode ? towncode.padStart(3, '0') : '000';
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   function setStep(id, state, icon) {
@@ -183,10 +182,13 @@
       .join('');
   }
 
-  function showFallback(msg) {
+  function showFallback(msg, blobUrl) {
     const el = document.getElementById('fallback');
     el.style.display = 'block';
-    el.innerHTML = msg + `<button class="btn btn-gold" onclick="window.open('${SDAT_URL}','_blank')">Open SDAT Manually</button>`;
+    el.innerHTML = `<p style="margin-bottom:0.6rem">${msg}</p>` +
+      `<button class="btn btn-gold" onclick="window.open('${blobUrl || SDAT_URL}','_blank')">
+        Open SDAT${blobUrl ? ' Result' : ' Manually'}
+      </button>`;
   }
 
   function extractHidden(html, name) {
@@ -206,24 +208,22 @@
   async function run() {
     await delay(300);
 
-    if (!acctid && !mapno && !parcel && !strtnum) {
+    if (!mapno && !parcel) {
       setStep('step-fetch', 'error', '⚠️');
-      setText('step-fetch', 'No parcel data in URL', 'Check your Arcade expression.');
-      showFallback('<p style="margin-bottom:0.5rem"><strong>No parcel fields were passed in the URL.</strong></p>');
+      setText('step-fetch', 'No map/parcel data in URL', 'Check your Arcade expression.');
+      showFallback('<strong>No map or parcel fields were passed.</strong> Check the pop-up Arcade expression.');
       return;
     }
 
     showSummary([
       ['Owner',      owner],
       ['Address',    address || [strtnum, strtnam].filter(Boolean).join(' ') || null],
-      ['Account ID', acctid],
-      ['District',   district],
-      ['Map',        mapno],
-      ['Parcel',     parcel],
-      ['Town Code',  towncode],
+      ['Map',        mapPadded],
+      ['Parcel',     parcelPadded],
+      ['Town Code',  townPadded],
     ]);
 
-    // ── STEP 1: Fetch page 1 for fresh tokens ──────────────────────────────
+    // ── STEP 1: GET page 1 for fresh tokens ───────────────────────────────
     let html1;
     try {
       const r = await fetch(SDAT_URL, { credentials: 'omit' });
@@ -231,13 +231,13 @@
     } catch(e) {
       setStep('step-fetch', 'error', '✗');
       setText('step-fetch', 'Could not reach SDAT', e.message);
-      showFallback('<p style="margin-bottom:0.5rem"><strong>SDAT could not be reached.</strong></p>');
+      showFallback('<strong>SDAT could not be reached.</strong>');
       return;
     }
     setStep('step-fetch', 'done', '✓');
     await delay(250);
 
-    // ── STEP 2: POST page 1 — county + search method ───────────────────────
+    // ── STEP 2: POST page 1 — Wicomico + Map/Parcel (search type 03) ──────
     setStep('step-page1', 'active', '<div class="spinner"></div>');
 
     const vs1  = extractHidden(html1, '__VIEWSTATE');
@@ -247,7 +247,7 @@
     if (!vs1 || !ev1) {
       setStep('step-page1', 'error', '✗');
       setText('step-page1', 'Token extraction failed', 'SDAT page structure may have changed.');
-      showFallback('<p style="margin-bottom:0.5rem"><strong>Could not parse SDAT session tokens.</strong></p>');
+      showFallback('<strong>Could not parse SDAT session tokens.</strong>');
       return;
     }
 
@@ -261,8 +261,9 @@
         '__VIEWSTATEGENERATOR': vsg1 || '',
         '__EVENTVALIDATION': ev1,
         'ctl00$cphMainContentArea$ucSearchType$hideBanner': 'false',
+        // Wicomico County = 23, Map/Parcel = 03
         'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucSearchType$ddlCounty': '23',
-        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucSearchType$ddlSearchType': '02',
+        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucSearchType$ddlSearchType': '03',
         'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$StartNavigationTemplateContainerID$btnContinue': 'Continue',
         'disclaimerLanguageSelect': 'English',
       });
@@ -276,14 +277,14 @@
       html2 = await r2.text();
     } catch(e) {
       setStep('step-page1', 'error', '✗');
-      setText('step-page1', 'Page 1 POST failed', e.message);
-      showFallback('<p style="margin-bottom:0.5rem"><strong>Could not submit county selection.</strong></p>');
+      setText('step-page1', 'County selection POST failed', e.message);
+      showFallback('<strong>Could not submit county selection.</strong>');
       return;
     }
     setStep('step-page1', 'done', '✓');
     await delay(250);
 
-    // ── STEP 3: POST page 2 — district + account ID ────────────────────────
+    // ── STEP 3: POST page 2 — Map, Parcel, Town Code ──────────────────────
     setStep('step-page2', 'active', '<div class="spinner"></div>');
 
     const vs2  = extractHidden(html2, '__VIEWSTATE');
@@ -293,13 +294,10 @@
     if (!vs2 || !ev2) {
       setStep('step-page2', 'error', '✗');
       setText('step-page2', 'Page 2 token extraction failed', 'Could not read second page tokens.');
-      showFallback('<p style="margin-bottom:0.5rem"><strong>Could not parse page 2 tokens — SDAT may have changed.</strong></p>');
+      showFallback('<strong>Could not parse page 2 tokens.</strong>');
       return;
     }
 
-    // Build a Blob URL from the page 2 POST response HTML and open it
-    // We need to POST page 2 and display the result — we do this by
-    // creating a hidden iframe to get the response HTML, then opening it
     let html3;
     try {
       const body2 = buildFormBody({
@@ -311,9 +309,11 @@
         '__EVENTVALIDATION': ev2,
         'ctl00$cphMainContentArea$ucSearchType$hideBanner': 'false',
         'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucSearchType$ddlCounty': '23',
-        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucSearchType$ddlSearchType': '02',
-        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucEnterData$txtDistrict': district,
-        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucEnterData$txtAccountIdentifier': acctid || '',
+        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucSearchType$ddlSearchType': '03',
+        // Map/Parcel/TownCode fields from the layer
+        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucEnterData$txtMap': mapPadded,
+        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucEnterData$txtParcel': parcelPadded,
+        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucEnterData$txtTownCode': townPadded,
         'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$StepNavigationTemplateContainerID$btnStepNextButton': 'Next',
         'disclaimerLanguageSelect': 'English',
       });
@@ -327,8 +327,8 @@
       html3 = await r3.text();
     } catch(e) {
       setStep('step-page2', 'error', '✗');
-      setText('step-page2', 'Page 2 POST failed', e.message);
-      showFallback('<p style="margin-bottom:0.5rem"><strong>Could not submit parcel data.</strong></p>');
+      setText('step-page2', 'Map/Parcel POST failed', e.message);
+      showFallback('<strong>Could not submit map/parcel data.</strong>');
       return;
     }
 
@@ -336,26 +336,23 @@
     setStep('step-done', 'active', '<div class="spinner"></div>');
     await delay(300);
 
-    // ── STEP 4: Open the result in a new tab ───────────────────────────────
-    // Rewrite relative URLs in the response HTML so assets load correctly
-    const base = 'https://sdat.dat.maryland.gov/RealProperty/Pages/';
-    const rewritten = html3
-      .replace(/(<head[^>]*>)/i, `$1<base href="${base}">`)
-      .replace(/action="\.\/default\.aspx"/gi, `action="${SDAT_URL}"`);
+    // ── STEP 4: Open result in new tab as Blob URL ─────────────────────────
+    // Rewrite relative paths so SDAT assets (CSS, JS, images) load correctly
+    const baseTag = `<base href="https://sdat.dat.maryland.gov/RealProperty/Pages/">`;
+    const rewritten = html3.replace(/(<head[^>]*>)/i, `$1${baseTag}`);
 
-    const blob = new Blob([rewritten], { type: 'text/html' });
+    const blob    = new Blob([rewritten], { type: 'text/html' });
     const blobUrl = URL.createObjectURL(blob);
-    const win = window.open(blobUrl, '_blank');
+    const win     = window.open(blobUrl, '_blank');
 
     if (win) {
       setStep('step-done', 'done', '✓');
       document.getElementById('card-title').textContent = 'Done!';
-      setText('step-done', 'Property record opened!', 'SDAT has opened in a new tab with your property record.');
+      setText('step-done', 'Property record opened!', 'SDAT has opened in a new tab with your property loaded.');
     } else {
       setStep('step-done', 'warn', '⚠️');
-      setText('step-done', 'Popup blocked', 'Click below to open the result.');
-      showFallback('<p style="margin-bottom:0.5rem"><strong>Popup was blocked.</strong> Click below:</p>');
-      document.querySelector('.btn-gold').onclick = () => window.open(blobUrl, '_blank');
+      setText('step-done', 'Popup blocked', 'Allow popups for this site and click below.');
+      showFallback('<strong>Popup was blocked.</strong> Click below to open the result:', blobUrl);
     }
   }
 
