@@ -104,49 +104,11 @@
 </footer>
 
 <script>
-  const SDAT_URL = 'https://sdat.dat.maryland.gov/RealProperty/Pages/default.aspx';
+  // Cloudflare Worker — acts as a server-side proxy to SDAT, bypassing CORS
+  const WORKER_URL = 'https://snowy-king-9f60.kylamcupp.workers.dev';
+  const SDAT_URL   = 'https://sdat.dat.maryland.gov/RealProperty/Pages/default.aspx';
 
-  // Proxy strategies — each returns a {url, options} object for fetch()
-  // We try them in order until one succeeds AND returns a page with __VIEWSTATE
-  const PROXY_STRATEGIES = [
-    // 1. corsproxy.io — passes full raw response
-    (url, opts) => ({
-      url: 'https://corsproxy.io/?' + encodeURIComponent(url),
-      options: { ...opts, credentials: 'omit' }
-    }),
-    // 2. allorigins raw endpoint
-    (url, opts) => ({
-      url: 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
-      options: { ...opts, credentials: 'omit' }
-    }),
-    // 3. thingproxy
-    (url, opts) => ({
-      url: 'https://thingproxy.freeboard.io/fetch/' + url,
-      options: { ...opts, credentials: 'omit' }
-    }),
-  ];
-
-  async function proxyFetch(targetUrl, fetchOpts = {}) {
-    for (const strategy of PROXY_STRATEGIES) {
-      try {
-        const { url, options } = strategy(targetUrl, fetchOpts);
-        const r = await fetch(url, options);
-        if (!r.ok) continue;
-        const text = await r.text();
-        // Only accept if we got real SDAT HTML back
-        if (text.includes('__VIEWSTATE') || text.includes('mdgovBodyTop')) {
-          console.log('Proxy succeeded:', url.split('?')[0]);
-          return text;
-        }
-        console.warn('Proxy returned HTML without VIEWSTATE:', url.split('?')[0]);
-      } catch(e) {
-        console.warn('Proxy failed:', e.message);
-      }
-    }
-    throw new Error('All proxies failed to return valid SDAT HTML');
-  }
-
-  // ── Parse URL params ───────────────────────────────────────────────────────
+  // ── Parse URL params (Parcels1 field names) ────────────────────────────────
   const raw = new URLSearchParams(window.location.search);
   const get = (...keys) => {
     for (const k of keys) {
@@ -199,7 +161,6 @@
   }
 
   function extractHidden(html, name) {
-    // Try both attribute orderings: name then value, and id then value
     const escaped = name.replace(/[$]/g, '\\$');
     const patterns = [
       new RegExp(`name="${escaped}"[^>]*value="([^"]*)"`, 'i'),
@@ -218,6 +179,22 @@
       .join('&');
   }
 
+  async function workerGet() {
+    const r = await fetch(WORKER_URL, { method: 'GET' });
+    if (!r.ok) throw new Error(`Worker GET failed: ${r.status}`);
+    return r.text();
+  }
+
+  async function workerPost(body) {
+    const r = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+    });
+    if (!r.ok) throw new Error(`Worker POST failed: ${r.status}`);
+    return r.text();
+  }
+
   // ── Main flow ──────────────────────────────────────────────────────────────
   async function run() {
     await delay(300);
@@ -230,34 +207,33 @@
     }
 
     showSummary([
-      ['Owner',      owner],
-      ['Address',    address || [strtnum, strtnam].filter(Boolean).join(' ') || null],
-      ['Map',        mapPadded],
-      ['Parcel',     parcelPadded],
-      ['Town Code',  townPadded],
+      ['Owner',     owner],
+      ['Address',   address || [strtnum, strtnam].filter(Boolean).join(' ') || null],
+      ['Map',       mapPadded],
+      ['Parcel',    parcelPadded],
+      ['Town Code', townPadded],
     ]);
 
-    // ── STEP 1: GET page 1 ─────────────────────────────────────────────────
+    // ── STEP 1: GET page 1 via Worker ──────────────────────────────────────
     let html1;
     try {
-      html1 = await proxyFetch(SDAT_URL);
+      html1 = await workerGet();
+      if (!html1.includes('__VIEWSTATE')) throw new Error('VIEWSTATE missing from response');
     } catch(e) {
       setStep('step-fetch', 'error', '✗');
       setText('step-fetch', 'Could not reach SDAT', e.message);
-      showFallback('<strong>All proxies failed.</strong> Use the parcel details above to search manually.');
+      showFallback('<strong>Worker could not reach SDAT.</strong> Open it manually and use the parcel details above.');
       return;
     }
     setStep('step-fetch', 'done', '✓');
     await delay(200);
 
-    // ── STEP 2: POST page 1 ────────────────────────────────────────────────
+    // ── STEP 2: POST page 1 — Wicomico + Map/Parcel ────────────────────────
     setStep('step-page1', 'active', '<div class="spinner"></div>');
 
     const vs1  = extractHidden(html1, '__VIEWSTATE');
     const vsg1 = extractHidden(html1, '__VIEWSTATEGENERATOR');
     const ev1  = extractHidden(html1, '__EVENTVALIDATION');
-
-    console.log('Page 1 tokens — VS:', !!vs1, 'EV:', !!ev1);
 
     if (!vs1 || !ev1) {
       setStep('step-page1', 'error', '✗');
@@ -268,23 +244,19 @@
 
     let html2;
     try {
-      html2 = await proxyFetch(SDAT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: buildFormBody({
-          '__EVENTTARGET': '',
-          '__EVENTARGUMENT': '',
-          '__LASTFOCUS': '',
-          '__VIEWSTATE': vs1,
-          '__VIEWSTATEGENERATOR': vsg1 || '',
-          '__EVENTVALIDATION': ev1,
-          'ctl00$cphMainContentArea$ucSearchType$hideBanner': 'false',
-          'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucSearchType$ddlCounty': '23',
-          'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucSearchType$ddlSearchType': '03',
-          'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$StartNavigationTemplateContainerID$btnContinue': 'Continue',
-          'disclaimerLanguageSelect': 'English',
-        }),
-      });
+      html2 = await workerPost(buildFormBody({
+        '__EVENTTARGET': '',
+        '__EVENTARGUMENT': '',
+        '__LASTFOCUS': '',
+        '__VIEWSTATE': vs1,
+        '__VIEWSTATEGENERATOR': vsg1 || '',
+        '__EVENTVALIDATION': ev1,
+        'ctl00$cphMainContentArea$ucSearchType$hideBanner': 'false',
+        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucSearchType$ddlCounty': '23',
+        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucSearchType$ddlSearchType': '03',
+        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$StartNavigationTemplateContainerID$btnContinue': 'Continue',
+        'disclaimerLanguageSelect': 'English',
+      }));
     } catch(e) {
       setStep('step-page1', 'error', '✗');
       setText('step-page1', 'County selection failed', e.message);
@@ -294,14 +266,12 @@
     setStep('step-page1', 'done', '✓');
     await delay(200);
 
-    // ── STEP 3: POST page 2 ────────────────────────────────────────────────
+    // ── STEP 3: POST page 2 — Map, Parcel, Town Code ──────────────────────
     setStep('step-page2', 'active', '<div class="spinner"></div>');
 
     const vs2  = extractHidden(html2, '__VIEWSTATE');
     const vsg2 = extractHidden(html2, '__VIEWSTATEGENERATOR');
     const ev2  = extractHidden(html2, '__EVENTVALIDATION');
-
-    console.log('Page 2 tokens — VS:', !!vs2, 'EV:', !!ev2);
 
     if (!vs2 || !ev2) {
       setStep('step-page2', 'error', '✗');
@@ -312,26 +282,22 @@
 
     let html3;
     try {
-      html3 = await proxyFetch(SDAT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: buildFormBody({
-          '__EVENTTARGET': '',
-          '__EVENTARGUMENT': '',
-          '__LASTFOCUS': '',
-          '__VIEWSTATE': vs2,
-          '__VIEWSTATEGENERATOR': vsg2 || '',
-          '__EVENTVALIDATION': ev2,
-          'ctl00$cphMainContentArea$ucSearchType$hideBanner': 'false',
-          'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucSearchType$ddlCounty': '23',
-          'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucSearchType$ddlSearchType': '03',
-          'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucEnterData$txtMap': mapPadded,
-          'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucEnterData$txtParcel': parcelPadded,
-          'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucEnterData$txtTownCode': townPadded,
-          'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$StepNavigationTemplateContainerID$btnStepNextButton': 'Next',
-          'disclaimerLanguageSelect': 'English',
-        }),
-      });
+      html3 = await workerPost(buildFormBody({
+        '__EVENTTARGET': '',
+        '__EVENTARGUMENT': '',
+        '__LASTFOCUS': '',
+        '__VIEWSTATE': vs2,
+        '__VIEWSTATEGENERATOR': vsg2 || '',
+        '__EVENTVALIDATION': ev2,
+        'ctl00$cphMainContentArea$ucSearchType$hideBanner': 'false',
+        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucSearchType$ddlCounty': '23',
+        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucSearchType$ddlSearchType': '03',
+        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucEnterData$txtMap': mapPadded,
+        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucEnterData$txtParcel': parcelPadded,
+        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$ucEnterData$txtTownCode': townPadded,
+        'ctl00$cphMainContentArea$ucSearchType$wzrdRealPropertySearch$StepNavigationTemplateContainerID$btnStepNextButton': 'Next',
+        'disclaimerLanguageSelect': 'English',
+      }));
     } catch(e) {
       setStep('step-page2', 'error', '✗');
       setText('step-page2', 'Map/Parcel POST failed', e.message);
@@ -343,8 +309,8 @@
     setStep('step-done', 'active', '<div class="spinner"></div>');
     await delay(250);
 
-    // ── STEP 4: Open result ────────────────────────────────────────────────
-    const baseTag  = `<base href="https://sdat.dat.maryland.gov/RealProperty/Pages/">`;
+    // ── STEP 4: Open result in new tab ─────────────────────────────────────
+    const baseTag   = `<base href="https://sdat.dat.maryland.gov/RealProperty/Pages/">`;
     const rewritten = html3.replace(/(<head[^>]*>)/i, `$1${baseTag}`);
     const blob      = new Blob([rewritten], { type: 'text/html' });
     const blobUrl   = URL.createObjectURL(blob);
